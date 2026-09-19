@@ -1,0 +1,5 @@
+{
+  "harvest_threshold_definition": "20th percentile of synthetic baseline harvest-health",
+  "H_star": 0.7864821387045725,
+  "label": "harvest_health < H_star"
+}

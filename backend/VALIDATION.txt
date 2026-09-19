@@ -1,0 +1,109 @@
+PASS 01_copula_data_generator.ipynb
+AQUASURE project root: C:\Users\LENOVO\Documents\Codex\2026-08-30\referenced-chatgpt-conversation-this-is-an\outputs\AQUASURE_final
+farm_id climate_zone  management_quality  stocking_intensity  sum_insured_weight
+FARM_01  coastal_wet                0.35            1.150000            0.750000
+FARM_02  coastal_dry                0.40            1.095455            0.795455
+FARM_03    estuarine                0.45            1.040909            0.840909
+FARM_04  coastal_wet                0.50            0.986364            0.886364
+FARM_05  coastal_dry                0.55            0.931818            0.931818
+FARM_06    estuarine                0.60            0.877273            0.977273
+FARM_07  coastal_wet                0.65            0.822727            1.022727
+FARM_08  coastal_dry                0.70            0.768182            1.068182
+FARM_09    estuarine                0.75            0.713636            1.113636
+FARM_10  coastal_wet                0.80            0.659091            1.159091
+FARM_11  coastal_dry                0.85            0.604545            1.204545
+FARM_12    estuarine                0.90            0.550000            1.250000
+
+Forecast inputs (9): ['temperature_c', 'dissolved_oxygen_mg_l', 'ph', 'salinity_ppt', 'ammonia_mg_l', 'nitrite_mg_l', 'turbidity_ntu', 'alkalinity_mg_l', 'pathogen_pressure']
+Minimum eigenvalue: 0.3794
+Saved 115,200 pond-day rows across 960 cycles.
+      temperature_c  dissolved_oxygen_mg_l     ph  salinity_ppt  ammonia_mg_l  nitrite_mg_l  turbidity_ntu  alkalinity_mg_l  pathogen_pressure
+min          22.741                  1.968  6.959         3.000         0.000         0.000          3.000           55.000              0.000
+mean         28.998                  5.776  7.825        18.998         0.112         0.175         54.623          116.052              0.159
+max          34.675                  9.000  8.777        38.000         0.690         0.780        159.721          190.000              0.981
+PASS — nine-variable schema, completeness, uniqueness, cycle length, and bounds.
+
+PASS 02_biological_risk_model.ipynb
+AQUASURE project root: C:\Users\LENOVO\Documents\Codex\2026-08-30\referenced-chatgpt-conversation-this-is-an\outputs\AQUASURE_final
+Loaded 115,200 pond-day observations.
+       cumulative_stress  survival_rate  growth_index  harvest_health  severe_event
+count           960.0000       960.0000      960.0000        960.0000      960.0000
+mean              0.1683         0.8187        0.8970          0.8484        0.2000
+std               0.0531         0.0717        0.0591          0.0634        0.4002
+min               0.0775         0.6091        0.7489          0.6887        0.0000
+25%               0.1238         0.7652        0.8514          0.8022        0.0000
+50%               0.1611         0.8200        0.9015          0.8489        0.0000
+75%               0.2112         0.8727        0.9455          0.9006        0.0000
+max               0.2966         0.9800        1.0000          0.9843        1.0000
+H*: 0.7865; severe-event rate: 20.00%
+PASS — outcomes are bounded, labels are non-degenerate, and cycle grain is unique.
+
+PASS 03_mdn_lstm_forecasting.ipynb
+AQUASURE project root: C:\Users\LENOVO\Documents\Codex\2026-08-30\referenced-chatgpt-conversation-this-is-an\outputs\AQUASURE_final
+Sequences: (960, 60, 9); train=720; holdout=240; variables=9
+PyTorch unavailable; tested NumPy fallback will run.
+MDN-LSTM definition compiled; PyTorch available: False
+Execution mode: numpy_lstm_state_mdn_fallback
+Development holdout RMSE: 0.0500
+farm_id     cycle_id split  actual_harvest_health  severe_event  forecast_harvest_health  phri_day60_raw
+FARM_01 FARM_01_C001 train                 0.7131             1                   0.7592          0.7368
+FARM_01 FARM_01_C002 train                 0.7356             1                   0.7499          0.8164
+FARM_01 FARM_01_C003 train                 0.7618             1                   0.7731          0.6173
+FARM_01 FARM_01_C004 train                 0.7172             1                   0.7780          0.5792
+FARM_01 FARM_01_C005 train                 0.7078             1                   0.7922          0.4691
+PASS — nine inputs, bounded PHRI, unique cycle grain, and holdout present.
+
+PASS 04_monte_carlo_pricing.ipynb
+AQUASURE project root: C:\Users\LENOVO\Documents\Codex\2026-08-30\referenced-chatgpt-conversation-this-is-an\outputs\AQUASURE_final
+Monte Carlo population: 240,000 scenarios (20,000 × 12 farms)
+Calibration intercept=-1.0644, slope=1.1876; Brier=0.1642; Log Loss=0.4969
+Trigger rate: 24.4900%
+0.00    0.7551
+0.10    0.0219
+0.20    0.1293
+0.35    0.0937
+{
+  "scenario_count": 240000,
+  "expected_payout_idr": 59862853.000000015,
+  "wang_lambda": 0.30848880781559274,
+  "wang_distortion_premium_idr": 90858557.993658,
+  "combined_expense_risk_admin_loading": 0.23999998996092442,
+  "gross_premium_idr": 112664611.0,
+  "expected_payout_to_gross_premium": 0.5313367921715898,
+  "pricing_object": "pre-agreed parametric payout Z"
+}
+ scenario_id farm_id  severe_event  phri_day60  max_cycle_phri  persistence_hours  data_completeness  stress_parameter_count  claim_trigger  weather_index_trigger  payout_rate  sum_insured_idr   payout_idr
+           1 FARM_01             1      0.6875          0.9207                 51             0.9458                       6              1                      0         0.20     7.386308e+08 1.477262e+08
+           2 FARM_01             0      0.3660          0.6396                 45             0.9404                       1              0                      0         0.00     7.386308e+08 0.000000e+00
+           3 FARM_01             1      0.8584          0.9918                 48             0.8520                       3              1                      0         0.35     7.386308e+08 2.585208e+08
+           4 FARM_01             1      0.7996          0.9611                 74             0.8550                       4              1                      0         0.35     7.386308e+08 2.585208e+08
+           5 FARM_01             0      0.5412          0.5928                 31             0.7240                       0              0                      0         0.00     7.386308e+08 0.000000e+00
+PASS — population grain, payout ladder, premium reconciliation, and guardrails.
+
+PASS 05_evaluation_basis_risk.ipynb
+AQUASURE project root: C:\Users\LENOVO\Documents\Codex\2026-08-30\referenced-chatgpt-conversation-this-is-an\outputs\AQUASURE_final
+Validated 240,000 unique, complete scenario rows.
+day60_roc_auc              0.82459
+brier_score                0.16420
+log_loss                   0.49690
+ece_10_equal_width_bins    0.03869
+severe_event_rate                          0.37420
+cycle_trigger_probability                  0.24490
+aquasure_negative_basis_risk               0.42860
+weather_index_negative_basis_risk          1.00000
+basis_risk_reduction_percentage_points    57.13968
+                                metric     observed    reference  difference
+                         day60_roc_auc 8.245900e-01 8.249000e-01    -0.00031
+                           brier_score 1.642000e-01 1.642000e-01    -0.00000
+                              log_loss 4.969000e-01 4.969000e-01     0.00000
+               ece_10_equal_width_bins 3.869000e-02 8.230000e-02    -0.04361
+                     severe_event_rate 3.742000e-01 3.742000e-01     0.00000
+             cycle_trigger_probability 2.449000e-01 2.449000e-01     0.00000
+          aquasure_negative_basis_risk 4.286000e-01 4.286000e-01     0.00000
+     weather_index_negative_basis_risk 1.000000e+00 1.000000e+00     0.00000
+basis_risk_reduction_percentage_points 5.713968e+01 5.714000e+01    -0.00032
+                   expected_payout_idr 5.986285e+07 5.986285e+07     0.00000
+           wang_distortion_premium_idr 9.085856e+07 9.085856e+07    -0.00634
+                     gross_premium_idr 1.126646e+08 1.126646e+08     0.00000
+
+Headline: 57.14 percentage-point reduction in negative basis risk.

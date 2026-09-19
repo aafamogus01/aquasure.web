@@ -1,0 +1,20 @@
+{
+  "execution_mode": "numpy_lstm_state_mdn_fallback",
+  "input_variables": [
+    "temperature_c",
+    "dissolved_oxygen_mg_l",
+    "ph",
+    "salinity_ppt",
+    "ammonia_mg_l",
+    "nitrite_mg_l",
+    "turbidity_ntu",
+    "alkalinity_mg_l",
+    "pathogen_pressure"
+  ],
+  "input_variable_count": 9,
+  "lookback_days": 60,
+  "forecast_target": "end-cycle harvest_health distribution",
+  "phri_definition": "P(harvest_health < H_star | observations through Day 60)",
+  "H_star": 0.7864821387045725,
+  "full_training_dependency": "torch>=2.2"
+}

@@ -1,0 +1,10 @@
+{
+  "scenario_count": 240000,
+  "expected_payout_idr": 59862853.000000015,
+  "wang_lambda": 0.30848880781559274,
+  "wang_distortion_premium_idr": 90858557.993658,
+  "combined_expense_risk_admin_loading": 0.23999998996092442,
+  "gross_premium_idr": 112664611.0,
+  "expected_payout_to_gross_premium": 0.5313367921715898,
+  "pricing_object": "pre-agreed parametric payout Z"
+}

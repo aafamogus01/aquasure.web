@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="AQUASURE — shrimp aquaculture risk intelligence and parametric insurance prototype." />
+  <title>AQUASURE — Pond Risk Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <div class="grid-bg" aria-hidden="true"></div>
+
+  <section id="login" class="login-shell">
+    <div class="login-brand">
+      <div class="brand"><span class="brand-mark"></span><span>AQUASURE</span></div>
+      <div>
+        <p class="kicker">POND RISK INTELLIGENCE</p>
+        <h1>Monitor. Forecast. Protect.</h1>
+        <p class="lead">Satu antarmuka untuk membaca kondisi tambak, melihat PHRI Day-60, dan meninjau proteksi parametrik berdasarkan pipeline R&D AQUASURE.</p>
+      </div>
+      <div class="brand-metrics">
+        <div><span>12</span><small>profil petambak</small></div>
+        <div><span>7</span><small>parameter inti</small></div>
+        <div><span>240k</span><small>skenario evaluasi</small></div>
+      </div>
+    </div>
+
+    <div class="login-panel">
+      <div class="login-head">
+        <p class="eyebrow">Akses demo</p>
+        <h2>Pilih workspace</h2>
+      </div>
+      <div class="role-grid" role="group" aria-label="Pilih peran">
+        <button class="role-option active" data-role="farmer" type="button">
+          <span class="role-icon">PF</span>
+          <b>Petambak</b>
+          <small>Kondisi air, riwayat 60 hari, PHRI, dan polis.</small>
+        </button>
+        <button class="role-option" data-role="insurer" type="button">
+          <span class="role-icon">UW</span>
+          <b>Underwriter</b>
+          <small>Portofolio 12 petambak, trigger, pricing, dan validasi model.</small>
+        </button>
+      </div>
+      <label class="field" id="farmField">
+        <span>Profil petambak</span>
+        <select id="loginFarm"></select>
+      </label>
+      <button id="enterButton" class="primary-button" type="button">Buka dashboard petambak</button>
+      <p class="login-foot">Prototype environment · sumber data berasal dari artefak Python AQUASURE.</p>
+    </div>
+  </section>
+
+  <div id="app" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="brand sidebar-brand"><span class="brand-mark"></span><span>AQUASURE</span></div>
+      <div class="workspace-label" id="workspaceLabel">PETAMBAK</div>
+      <nav id="nav" class="nav"></nav>
+      <div class="sidebar-foot">
+        <div class="source-state"><i></i><span>Python artifacts linked</span></div>
+        <button id="logoutButton" class="text-button" type="button">Keluar</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="breadcrumb" id="breadcrumb">AQUASURE</p>
+          <h1 id="pageTitle">Overview</h1>
+        </div>
+        <div class="top-controls">
+          <div class="mode-switch" role="group" aria-label="Mode skenario">
+            <button data-mode="operational" class="active" type="button">Operational</button>
+            <button data-mode="stress" type="button">Stress test</button>
+          </div>
+          <span class="status-chip"><i></i> R&D PROTOTYPE</span>
+        </div>
+      </header>
+      <section id="view" class="view"></section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
