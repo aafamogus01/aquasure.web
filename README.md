@@ -1,66 +1,87 @@
-# AQUASURE Web Demo
+# AQUASURE Web Demo — retrained MDN-LSTM version
 
-Versi dashboard yang dipoles untuk presentasi dan GitHub Pages. Frontend ini menggunakan data yang diekspor dari artefak Python AQUASURE, bukan angka acak terpisah.
+Dashboard static untuk presentasi dan GitHub Pages. Frontend ini memakai artefak Python AQUASURE dan **memisahkan dengan jelas** hasil trained MDN-LSTM terbaru dari legacy calibrated insurance benchmark.
 
-## Yang sudah diselaraskan
+## Konsistensi data
 
-- **12 petambak / farm profiles**, sama dengan arsip Python.
-- **7 variabel inti yang tampil di produk**: suhu, dissolved oxygen, pH, salinitas, amonia, nitrit, dan kekeruhan.
-- Alkalinity dan pathogen pressure tetap dicatat sebagai **offline R&D auxiliaries**, bukan variabel inti yang tampil di dashboard.
-- **PHRI Day-60**, lookback 60 hari, siklus 120 hari, trigger 75% + 48 jam + data completeness 85% + konfirmasi multivariat, dan payout ladder mengikuti artefak Python.
-- Mode **Operational** memakai `C080` tiap petambak.
-- Mode **Stress test** memakai siklus dengan PHRI tertinggi yang benar-benar ada pada `forecast_training_results.csv`.
-- Pemilih tanggal hanya membuka **Day 1–60**, sesuai jendela input forecasting.
-- Halaman underwriter memakai 12 profil yang sama, bukan 20 kolam/5 tambak seperti prototype lama.
+- **12 petambak / farm profiles**.
+- **7 core inputs trained MDN-LSTM**: temperature, dissolved oxygen, pH, salinity, ammonia, nitrite, turbidity.
+- **Lookback 60 hari**, target = end-cycle harvest-health distribution.
+- PHRI resmi dihitung sebagai `P(harvest_health < H* | X1:60)` pada **Day 60**.
+- Kalender baru **Kalender Forecast Harian** menampilkan trajectory water-quality harian yang benar-benar ada di `generatedData.js`. Warna kalender hanya menunjukkan jumlah parameter yang melewati R&D reference threshold; **tidak mengarang PHRI harian** sebelum Day 60.
+- Operational mode memakai `C080` tiap petambak; Stress-test mode memakai cycle dengan trained out-of-fold PHRI tertinggi untuk petambak tersebut.
+- **Total portfolio Sum Insured prototype = Rp768.915.000**, dibagi ke 12 petambak memakai `sum_insured_weight` agar total dashboard konsisten dengan business-report benchmark.
+- Legacy pricing benchmark tetap: expected payout Rp59.862.853, Wang/distortion premium Rp90.858.558, gross premium Rp112.664.611. Ini **portfolio-level prototype benchmark**. Dashboard juga menampilkan **ilustrasi per petambak** yang dialokasikan dari benchmark tersebut menurut synthetic payout-risk share masing-masing farm; seluruh angka farm-level dijaga agar menjumlah tepat kembali ke total portfolio. Ini masih bukan independent commercial quotation.
 
-## Deploy ke GitHub Pages
+## Model terbaru
+
+`backend/trained_model/forecast_model_trained.json` adalah model card untuk actual trained PyTorch MDN-LSTM.
+
+Validation design: nested farm-grouped validation, 6 outer folds, entire farms held out.
+
+Main out-of-fold metrics:
+
+- PHRI AUC: 0.9473
+- Brier: 0.0767
+- Log Loss: 0.2360
+- ECE: 0.0298
+- RMSE: 0.0319
+- MAE: 0.0259
+- CRPS: 0.0182
+
+Semua angka tersebut tetap **synthetic development evidence, not field validation**.
+
+## Deploy GitHub Pages
 
 Tidak ada build step.
 
-1. Buat repository GitHub baru.
-2. Upload **isi folder ini** ke root repository.
-3. Commit dan push ke branch `main`.
-4. Buka **Settings → Pages**.
-5. Pada **Build and deployment**, pilih **Deploy from a branch**.
-6. Pilih `main` dan `/ (root)`.
-7. Save.
+1. Upload **isi folder ini** ke root repository GitHub.
+2. Commit ke branch `main`.
+3. Buka `Settings → Pages`.
+4. Source: `Deploy from a branch`.
+5. Branch: `main`, folder: `/(root)`.
+6. Save.
 
-Setelah GitHub selesai deploy, website dapat dibuka dari URL GitHub Pages repository tersebut.
-
-## Hubungan dengan Python
-
-GitHub Pages adalah hosting **static**, jadi ia tidak dapat menjalankan server Python secara langsung. Karena itu alurnya dibuat:
-
-```text
-Python notebooks / artifacts
-        ↓
-scripts/export_web_data.py
-        ↓
-src/data/generatedData.js
-        ↓
-GitHub Pages frontend
-```
-
-Setelah notebook Python diperbarui, jalankan:
-
-```bash
-python scripts/export_web_data.py /path/to/AQUASURE_final
-```
-
-untuk membuat ulang bundle data website.
-
-Folder `backend/` menyimpan lima notebook dan artefak ringkas yang menjadi source of truth. Dua CSV terbesar tidak diduplikasi agar repository website tetap ringan.
-
-## Preview lokal
-
-Karena frontend menggunakan ES modules, jalankan melalui HTTP server:
+Karena frontend memakai ES modules, jangan membuka `index.html` langsung dengan `file://`. Untuk preview lokal:
 
 ```bash
 python -m http.server 8080
 ```
 
-kemudian buka:
+lalu buka `http://localhost:8080`.
+
+## Regenerate web data
+
+Gunakan **retrained AQUASURE package**:
+
+```bash
+python scripts/export_web_data.py /path/to/AQUASURE_final
+```
+
+Expected layout source:
 
 ```text
-http://localhost:8080
+AQUASURE_final/
+├── artifacts/
+├── artifacts_trained/
+└── legacy_benchmark_reconstruction/
+    └── artifacts/
+```
+
+Alurnya:
+
+```text
+01 synthetic pond trajectories
+        ↓
+02 synthetic biological labels
+        ↓
+03 trained PyTorch MDN-LSTM + grouped OOF validation
+        ↓
+web exporter
+        ↓
+src/data/generatedData.js
+        ↓
+GitHub Pages frontend
+
+04–05 legacy pricing/evaluation are shown separately as calibrated synthetic insurance benchmark.
 ```

@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
-"""Regenerate the AQUASURE website data bundle from the Python archive.
+"""Regenerate the static AQUASURE web bundle from the retrained Python package.
 
 Usage:
     python scripts/export_web_data.py /path/to/AQUASURE_final
 
-The website is static (GitHub Pages cannot execute Python). This script is the
-bridge from the Python R&D artifacts to the deployed JavaScript data bundle.
+Expected source layout:
+    artifacts/pond_timeseries.csv
+    artifacts/farm_profiles.csv
+    artifacts_trained/mdn_lstm_oof_nested.csv
+    artifacts_trained/forecast_model_trained.json
+    legacy_benchmark_reconstruction/artifacts/monte_carlo_scenarios.csv
+    legacy_benchmark_reconstruction/artifacts/evaluation_metrics.json
+    legacy_benchmark_reconstruction/artifacts/pricing_results.json
+
+GitHub Pages is static; this exporter converts the Python R&D artifacts to
+src/data/generatedData.js. The trained model validation and the legacy insurance
+benchmark are kept explicitly separate.
 """
 from pathlib import Path
 import sys, json
@@ -17,21 +27,21 @@ if len(sys.argv) != 2:
 SRC = Path(sys.argv[1]).resolve()
 OUT = Path(__file__).resolve().parents[1] / "src/data/generatedData.js"
 A = SRC / "artifacts"
+T = SRC / "artifacts_trained"
+L = SRC / "legacy_benchmark_reconstruction" / "artifacts"
 
 profiles = pd.read_csv(A / "farm_profiles.csv")
 pond = pd.read_csv(A / "pond_timeseries.csv")
-forecast = pd.read_csv(A / "forecast_training_results.csv")
-mc = pd.read_csv(A / "monte_carlo_scenarios.csv")
-metrics = json.loads((A / "evaluation_metrics.json").read_text())
-pricing = json.loads((A / "pricing_results.json").read_text())
+oof = pd.read_csv(T / "mdn_lstm_oof_nested.csv")
+model = json.loads((T / "forecast_model_trained.json").read_text())
+mc = pd.read_csv(L / "monte_carlo_scenarios.csv")
+metrics = json.loads((L / "evaluation_metrics.json").read_text())
+pricing = json.loads((L / "pricing_results.json").read_text())
 
 CORE = [
-    ("temperature", "temperature_c"),
-    ("do", "dissolved_oxygen_mg_l"),
-    ("ph", "ph"),
-    ("salinity", "salinity_ppt"),
-    ("ammonia", "ammonia_mg_l"),
-    ("nitrite", "nitrite_mg_l"),
+    ("temperature", "temperature_c"), ("do", "dissolved_oxygen_mg_l"),
+    ("ph", "ph"), ("salinity", "salinity_ppt"),
+    ("ammonia", "ammonia_mg_l"), ("nitrite", "nitrite_mg_l"),
     ("turbidity", "turbidity_ntu"),
 ]
 META = {
@@ -43,11 +53,16 @@ META = {
     "nitrite":{"label":"Nitrit","full":"Nitrite","unit":"mg/L","ref":"≤ 0.28 mg/L","direction":"high","threshold":0.28,"decimals":3},
     "turbidity":{"label":"Kekeruhan","full":"Turbidity","unit":"NTU","ref":"≤ 82 NTU","direction":"high","threshold":82,"decimals":1},
 }
-START = pd.Timestamp("2026-07-22")  # Day 60 = 2026-09-19 for the demo
+START = pd.Timestamp("2026-07-22")   # Day 60 = 2026-09-19 in the demo
+TOTAL_SI = 768_915_000                # prototype portfolio SI from the business report
+
+weights = profiles.set_index("farm_id")["sum_insured_weight"].astype(float)
+si = (TOTAL_SI * weights / weights.sum()).round().astype(int).to_dict()
+si[profiles.farm_id.iloc[-1]] += TOTAL_SI - sum(si.values())
 
 def payload(fid, cid):
     ts = pond[(pond.farm_id == fid) & (pond.cycle_id == cid) & (pond.day <= 60)].sort_values("day")
-    fr = forecast[forecast.cycle_id == cid].iloc[0]
+    fr = oof[oof.cycle_id == cid].iloc[0]
     series = []
     for _, r in ts.iterrows():
         d = {"day": int(r.day), "date": (START + pd.Timedelta(days=int(r.day)-1)).strftime("%Y-%m-%d")}
@@ -56,21 +71,23 @@ def payload(fid, cid):
         series.append(d)
     return {
         "cycleId": cid,
-        "phri": round(float(fr.phri_day60_raw), 6),
+        "phri": round(float(fr.phri_day60), 6),
         "forecastHarvestHealth": round(float(fr.forecast_harvest_health), 6),
         "actualHarvestHealth": round(float(fr.actual_harvest_health), 6),
         "severeEvent": int(fr.severe_event),
-        "split": str(fr.split),
+        "outerFold": int(fr.outer_fold),
+        "selectedConfig": str(fr.selected_config),
         "series": series,
     }
 
-climate = {"coastal_wet":"Pesisir basah","coastal_dry":"Pesisir kering","estuarine":"Estuari"}
+climate = {"coastal_wet":"Pesisir basah", "coastal_dry":"Pesisir kering", "estuarine":"Estuari"}
 farms = []
 for _, p in profiles.iterrows():
     fid = p.farm_id
-    fs = forecast[forecast.farm_id == fid]
+    fs = oof[oof.farm_id == fid]
     ms = mc[mc.farm_id == fid]
-    stress_id = fs.loc[fs.phri_day60_raw.idxmax(), "cycle_id"]
+    stress_id = fs.loc[fs.phri_day60.idxmax(), "cycle_id"]
+    mean_payout_ratio = float((ms.payout_idr / ms.sum_insured_idr).mean())
     farms.append({
         "id": fid,
         "name": f"Petambak {int(fid.split('_')[1]):02d}",
@@ -79,21 +96,43 @@ for _, p in profiles.iterrows():
         "managementQuality": round(float(p.management_quality), 4),
         "stockingIntensity": round(float(p.stocking_intensity), 4),
         "sumInsuredWeight": round(float(p.sum_insured_weight), 4),
-        "sumInsuredIdr": round(float(ms.sum_insured_idr.iloc[0])),
+        "sumInsuredIdr": int(si[fid]),
         "scenarioStats": {
             "triggerRate": round(float(ms.claim_trigger.mean()), 6),
             "severeRate": round(float(ms.severe_event.mean()), 6),
             "dataCompleteness": round(float(ms.data_completeness.mean()), 6),
-            "meanPayoutIdr": round(float(ms.payout_idr.mean())),
+            "meanPayoutIdr": round(si[fid] * mean_payout_ratio),
             "meanDay60Phri": round(float(ms.phri_day60.mean()), 6),
         },
         "operational": payload(fid, f"{fid}_C080"),
         "stress": payload(fid, stress_id),
     })
 
+# Allocate the portfolio benchmark to farm-level illustrative pricing in a way
+# that is mathematically consistent with the portfolio totals. The allocation
+# uses each farm's simulated mean payout share after the SI normalization; it is
+# an illustrative decomposition, not an independently underwritten quotation.
+raw_expected = sum(x["scenarioStats"]["meanPayoutIdr"] for x in farms)
+expected_scale = pricing["expected_payout_idr"] / raw_expected if raw_expected else 0.0
+distortion_ratio = pricing["wang_distortion_premium_idr"] / pricing["expected_payout_idr"]
+gross_ratio = pricing["gross_premium_idr"] / pricing["expected_payout_idr"]
+for x in farms:
+    e = round(x["scenarioStats"]["meanPayoutIdr"] * expected_scale)
+    x["pricing"] = {
+        "expectedPayoutIdr": e,
+        "distortionPremiumIdr": round(e * distortion_ratio),
+        "grossPremiumIdr": round(e * gross_ratio),
+        "status": "illustrative allocation of portfolio prototype benchmark; not an individual commercial quote",
+    }
+# rounding reconciliation so farm-level cards add exactly to portfolio totals
+for key, total in [("expectedPayoutIdr", round(pricing["expected_payout_idr"])),
+                   ("distortionPremiumIdr", round(pricing["wang_distortion_premium_idr"])),
+                   ("grossPremiumIdr", round(pricing["gross_premium_idr"]))]:
+    farms[-1]["pricing"][key] += int(total - sum(x["pricing"][key] for x in farms))
+
 obj = {
-    "generatedFrom": "AQUASURE Python archive artifacts",
-    "generatedAt": "2026-09-19",
+    "generatedFrom": "AQUASURE retrained Python artifacts + legacy insurance benchmark",
+    "generatedAt": "2026-09-22",
     "demoDate": "2026-09-19",
     "lookbackDays": 60,
     "cycleDays": 120,
@@ -101,21 +140,23 @@ obj = {
     "coreVariables": META,
     "auxiliaryOffline": ["alkalinity_mg_l", "pathogen_pressure"],
     "contract": {
-        "phriThreshold": 0.75,
-        "persistenceHours": 48,
-        "minDataCompleteness": 0.85,
-        "minStressParameters": 3,
+        "phriThreshold": 0.75, "persistenceHours": 48,
+        "minDataCompleteness": 0.85, "minStressParameters": 3,
         "stressParameterDenominator": 6,
         "payoutLadder": [
-            {"min":0,"max":0.75,"ratio":0},
-            {"min":0.75,"max":0.85,"ratio":0.10},
-            {"min":0.85,"max":0.95,"ratio":0.20},
-            {"min":0.95,"max":1.01,"ratio":0.35},
+            {"min":0,"max":0.75,"ratio":0}, {"min":0.75,"max":0.85,"ratio":0.10},
+            {"min":0.85,"max":0.95,"ratio":0.20}, {"min":0.95,"max":1.01,"ratio":0.35},
         ],
+    },
+    "modelValidation": {
+        "executionMode": model["execution_mode"], "scope": model["scope"],
+        "design": model["validation"]["design"], "selectedConfiguration": model["architecture"],
+        "metrics": model["validation"]["out_of_fold_metrics"], "HStar": model["H_star"],
+        "forecastTarget": model["forecast_target"], "phriDefinition": model["phri_definition"],
     },
     "portfolioBenchmark": {
         "scenarioPopulation": metrics["scenario_population"],
-        "evidenceStatus": metrics["evidence_status"],
+        "evidenceStatus": "legacy calibrated synthetic reconstruction; separate from trained MDN-LSTM validation",
         "auc": metrics["reference"]["day60_roc_auc"],
         "brier": metrics["reference"]["brier_score"],
         "logLoss": metrics["reference"]["log_loss"],
@@ -123,6 +164,7 @@ obj = {
         "triggerProbability": metrics["reference"]["cycle_trigger_probability"],
         "basisRisk": metrics["reference"]["aquasure_negative_basis_risk"],
         "basisRiskReductionPp": metrics["reference"]["basis_risk_reduction_percentage_points"],
+        "totalSumInsuredIdr": TOTAL_SI,
         "expectedPayoutIdr": pricing["expected_payout_idr"],
         "wangPremiumIdr": pricing["wang_distortion_premium_idr"],
         "grossPremiumIdr": pricing["gross_premium_idr"],
@@ -131,4 +173,4 @@ obj = {
     "farms": farms,
 }
 OUT.write_text("export const AQUASURE_DATA = " + json.dumps(obj, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
-print(f"Wrote {OUT} ({OUT.stat().st_size:,} bytes)")
+print(f"Wrote {OUT} ({OUT.stat().st_size:,} bytes); total SI={sum(x['sumInsuredIdr'] for x in farms):,}")

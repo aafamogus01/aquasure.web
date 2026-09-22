@@ -1,0 +1,78 @@
+{
+  "execution_mode": "pytorch_trained_mdn_lstm",
+  "artifact": "mdn_lstm_core7_trained.pt",
+  "input_variables": [
+    "temperature_c",
+    "dissolved_oxygen_mg_l",
+    "ph",
+    "salinity_ppt",
+    "ammonia_mg_l",
+    "nitrite_mg_l",
+    "turbidity_ntu"
+  ],
+  "input_variable_count": 7,
+  "lookback_days": 60,
+  "forecast_target": "end-cycle harvest_health distribution",
+  "phri_definition": "P(harvest_health < H_star | observations through Day 60)",
+  "H_star": 0.7864821387045725,
+  "architecture": {
+    "lstm_hidden_size": 64,
+    "lstm_layers": 1,
+    "mixture_components": 2,
+    "dropout": 0.1,
+    "mu_link": "sigmoid",
+    "sigma_link": "softplus + 0.005",
+    "state_normalization": "LayerNorm"
+  },
+  "training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "final_fit_epochs": 74,
+    "epoch_choice": "median of best epochs from outer folds where the most frequently selected configuration H64_K2_D10 won validation",
+    "final_train_nll": -2.0352602005004883
+  },
+  "validation": {
+    "design": "nested farm-grouped validation: 6 outer folds; entire farms held out for test; separate validation farms used for architecture selection and early stopping",
+    "configuration_search": [
+      "H16_K2_D05",
+      "H32_K2_D10",
+      "H64_K2_D10",
+      "H32_K3_D10",
+      "H32_K1_D10"
+    ],
+    "selected_configuration_frequency": "H64_K2_D10 selected in 4 of 6 outer folds",
+    "out_of_fold_metrics": {
+      "n": 960,
+      "input_features": [
+        "temperature_c",
+        "dissolved_oxygen_mg_l",
+        "ph",
+        "salinity_ppt",
+        "ammonia_mg_l",
+        "nitrite_mg_l",
+        "turbidity_ntu"
+      ],
+      "outer_folds": 6,
+      "rmse": 0.03189660232238227,
+      "mae": 0.025934367502729098,
+      "mean_crps": 0.0182229844179928,
+      "phri_auc": 0.94732666015625,
+      "phri_brier": 0.07671211945441456,
+      "phri_logloss": 0.23600521163141613,
+      "phri_ece10": 0.02979576391085686,
+      "pit_ks_stat": 0.019724252234984863,
+      "pit_ks_pvalue": 0.8418409006857209,
+      "selected_configs": [
+        "H64_K2_D10",
+        "H32_K3_D10",
+        "H64_K2_D10",
+        "H32_K1_D10",
+        "H64_K2_D10",
+        "H64_K2_D10"
+      ]
+    }
+  },
+  "scope": "synthetic development evidence only; not field validation"
+}

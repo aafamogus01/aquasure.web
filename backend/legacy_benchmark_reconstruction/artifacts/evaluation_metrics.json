@@ -1,0 +1,41 @@
+{
+  "evidence_status": "calibrated synthetic reconstruction; not field validation",
+  "scenario_population": "12 farms \u00d7 20,000 scenarios",
+  "metric_definitions": {
+    "negative_basis_risk": "P(no trigger | severe biological event)",
+    "reduction": "weather-index NBR minus AQUASURE NBR, percentage points",
+    "ece": "10 equal-width bins"
+  },
+  "observed": {
+    "day60_roc_auc": 0.8245879217383387,
+    "brier_score": 0.16419998689648171,
+    "log_loss": 0.49690002326247174,
+    "ece_10_equal_width_bins": 0.038688757703272514,
+    "severe_event_rate": 0.3742,
+    "cycle_trigger_probability": 0.2449,
+    "aquasure_negative_basis_risk": 0.42860324247283094,
+    "weather_index_negative_basis_risk": 1.0,
+    "basis_risk_reduction_percentage_points": 57.1396757527169,
+    "expected_payout_idr": 59862853.000000015,
+    "wang_distortion_premium_idr": 90858557.993658,
+    "gross_premium_idr": 112664611.0
+  },
+  "reference": {
+    "provenance": "Recovered AQUASURE specification; calibrated synthetic benchmark, not field evidence.",
+    "farm_profiles": 12,
+    "scenarios_per_farm": 20000,
+    "total_scenarios": 240000,
+    "day60_roc_auc": 0.8249,
+    "brier_score": 0.1642,
+    "log_loss": 0.4969,
+    "ece": 0.0823,
+    "severe_event_rate": 0.3742,
+    "cycle_trigger_probability": 0.2449,
+    "aquasure_negative_basis_risk": 0.4286,
+    "weather_index_negative_basis_risk": 1.0,
+    "basis_risk_reduction_percentage_points": 57.14,
+    "expected_payout_idr": 59862853,
+    "wang_distortion_premium_idr": 90858558,
+    "gross_premium_idr": 112664611
+  }
+}
